@@ -1,0 +1,88 @@
+package org.wallet;
+
+import java.io.*;
+
+public class RootPrivateKey {
+    private String rootPrivateKey;
+
+    public String getRootPrivateKey() {
+        return rootPrivateKey;
+    }
+
+    public void setRootPrivateKey(String cliPath, String recoveryPhraseFilePath, String resourcePath, String os) {
+        String command ="";
+        if (os.contains("win")) {
+            // For Windows
+            command = cliPath + " key"+ " from-recovery-phrase"+ " Shelley";
+        } else {
+            // Unix/Linux/MacOS command
+            command = cliPath + " key"+ " from-recovery-phrase"+ " Shelley";
+
+        }
+
+        try {
+if (!os.contains("win")) {
+    ProcessBuilder rootPrivateKey = new ProcessBuilder(command);
+    rootPrivateKey.redirectInput(new File(recoveryPhraseFilePath)); // Pass seed phrase file as input
+    rootPrivateKey.redirectErrorStream(true); // Redirect error stream to input stream
+
+    Process processRootPrivateKey = rootPrivateKey.start();
+
+    // Read the output stream for root private key derivation
+    BufferedReader readerRootPrivateKey = new BufferedReader(new InputStreamReader(processRootPrivateKey.getInputStream()));
+    StringBuilder rootPrivateKeyBuilder = new StringBuilder();
+    String lineRootPrivateKey;
+    while ((lineRootPrivateKey = readerRootPrivateKey.readLine()) != null) {
+        rootPrivateKeyBuilder.append(lineRootPrivateKey).append("\n");
+    }
+
+    // Wait for the root private key derivation process to finish
+    int exitCodeRootPrivateKey = processRootPrivateKey.waitFor();
+    System.out.println("Root private key derivation exited with error code: " + exitCodeRootPrivateKey);
+
+    // Store the root private key in a variable
+    this.rootPrivateKey.toString().trim();
+
+}else {
+    // Read recovery phrase from file
+    StringBuilder recoveryPhraseBuilder = new StringBuilder();
+    BufferedReader phraseReader = new BufferedReader(new FileReader(recoveryPhraseFilePath));
+    String line;
+    while ((line = phraseReader.readLine()) != null) {
+        recoveryPhraseBuilder.append(line).append("\n");
+    }
+    phraseReader.close();
+    String recoveryPhrase = recoveryPhraseBuilder.toString();
+
+    // Execute command with recovery phrase as input
+    Process process = Runtime.getRuntime().exec(command);
+    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+    writer.write(recoveryPhrase);
+    writer.flush();
+    writer.close();
+
+    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+    String output = "";
+    while ((line = reader.readLine()) != null) {
+        // Assuming the root private key is printed in the output
+        output += line + "\n";
+    }
+
+    int exitCode = process.waitFor();
+    if (exitCode == 0) {
+        System.out.println("Root private key generated successfully.");
+        // Save root private key to file
+        File rootPrivateKeyFile = new File(resourcePath + "root.xsk");
+        BufferedWriter privateKeyWriter = new BufferedWriter(new FileWriter(rootPrivateKeyFile));
+        privateKeyWriter.write(output);
+        privateKeyWriter.close();
+        this.rootPrivateKey = output.trim(); // Set the root private key
+    } else {
+        System.out.println("Error occurred while generating root private key.");
+    }
+}
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
